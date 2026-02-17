@@ -12,9 +12,8 @@ pkg_check_modules(SQLITE3 REQUIRED IMPORTED_TARGET sqlite3)
 
 find_path(NLOHMANN_JSON_INCLUDE nlohmann/json.hpp REQUIRED)
 
-# Daemon
-add_executable(speak-anywhere
-    src/daemon/main.cpp
+# Daemon library (everything except main.cpp — shared by daemon and tests)
+add_library(speak-anywhere-lib STATIC
     src/daemon/event_loop.cpp
     src/daemon/audio_capture.cpp
     src/daemon/session.cpp
@@ -28,16 +27,20 @@ add_executable(speak-anywhere
     src/daemon/storage/history_db.cpp
 )
 
-target_include_directories(speak-anywhere PRIVATE
+target_include_directories(speak-anywhere-lib PUBLIC
     src/daemon
     ${NLOHMANN_JSON_INCLUDE}
 )
 
-target_link_libraries(speak-anywhere PRIVATE
+target_link_libraries(speak-anywhere-lib PUBLIC
     PkgConfig::PIPEWIRE
     PkgConfig::CURL
     PkgConfig::SQLITE3
 )
+
+# Daemon executable
+add_executable(speak-anywhere src/daemon/main.cpp)
+target_link_libraries(speak-anywhere PRIVATE speak-anywhere-lib)
 
 # CLI client
 add_executable(sa
@@ -48,3 +51,39 @@ add_executable(sa
 target_include_directories(sa PRIVATE
     ${NLOHMANN_JSON_INCLUDE}
 )
+
+# Tests
+include(FetchContent)
+FetchContent_Declare(
+    Catch2
+    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+    GIT_TAG        v3.7.1
+)
+FetchContent_MakeAvailable(Catch2)
+
+enable_testing()
+
+add_executable(tests
+    tests/test_ring_buffer.cpp
+    tests/test_wav_encoder.cpp
+    tests/test_session.cpp
+    tests/test_config.cpp
+    tests/test_ipc_protocol.cpp
+    tests/test_history_db.cpp
+    tests/test_agent_detector.cpp
+    tests/test_window_info.cpp
+)
+
+target_link_libraries(tests PRIVATE
+    speak-anywhere-lib
+    Catch2::Catch2WithMain
+)
+
+# IPC protocol test needs the client too
+target_sources(tests PRIVATE src/client/ipc_client.cpp)
+target_include_directories(tests PRIVATE src/client)
+
+list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
+include(CatchSharedTests OPTIONAL)
+include(Catch)
+catch_discover_tests(tests)
