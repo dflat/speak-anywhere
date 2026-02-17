@@ -1,0 +1,16 @@
+{
+  "backend": {
+    "type": "lan",
+    "url": "http://192.168.1.100:8080",
+    "api_format": "whisper.cpp",
+    "language": "en"
+  },
+  "output": {
+    "default": "clipboard"
+  },
+  "audio": {
+    "sample_rate": 16000,
+    "max_seconds": 120
+  },
+  "agents": ["claude", "aider", "gh", "cursor"]
+}

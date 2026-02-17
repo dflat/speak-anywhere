@@ -1,0 +1,17 @@
+[Unit]
+Description=speak-anywhere speech-to-text daemon
+Documentation=https://github.com/rjr/speak-anywhere
+After=pipewire.service
+Requires=pipewire.service
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/speak-anywhere --foreground --verbose
+Restart=on-failure
+RestartSec=3
+
+# Environment
+Environment=XDG_RUNTIME_DIR=%t
+
+[Install]
+WantedBy=default.target
