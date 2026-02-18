@@ -85,6 +85,9 @@ bool SwayIpc::read_event(WindowInfo& info) {
         if (j.contains("container")) {
             auto& c = j["container"];
             info.app_id = c.value("app_id", "");
+            if (info.app_id.empty() && c.contains("window_properties")) {
+                info.window_class = c["window_properties"].value("class", "");
+            }
             info.title = c.value("name", "");
             info.pid = c.value("pid", 0);
         }
@@ -157,6 +160,9 @@ WindowInfo SwayIpc::find_focused(const nlohmann::json& node) {
     if (node.value("focused", false)) {
         WindowInfo info;
         info.app_id = node.value("app_id", "");
+        if (info.app_id.empty() && node.contains("window_properties")) {
+            info.window_class = node["window_properties"].value("class", "");
+        }
         info.title = node.value("name", "");
         info.pid = node.value("pid", 0);
         return info;
@@ -165,13 +171,13 @@ WindowInfo SwayIpc::find_focused(const nlohmann::json& node) {
     if (node.contains("nodes")) {
         for (auto& child : node["nodes"]) {
             auto info = find_focused(child);
-            if (!info.empty()) return info;
+            if (!info.empty() || child.value("focused", false)) return info;
         }
     }
     if (node.contains("floating_nodes")) {
         for (auto& child : node["floating_nodes"]) {
             auto info = find_focused(child);
-            if (!info.empty()) return info;
+            if (!info.empty() || child.value("focused", false)) return info;
         }
     }
     return {};

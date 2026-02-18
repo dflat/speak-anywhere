@@ -15,6 +15,7 @@ struct HistoryEntry {
     double processing_time;
     std::string app_context;
     std::string app_id;
+    std::string window_class;
     std::string window_title;
     std::string agent;
     std::string working_dir;

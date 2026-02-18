@@ -33,12 +33,12 @@ bool HistoryDb::open(const std::string& path) {
     // Prepare statements
     const char* insert_sql =
         "INSERT INTO transcriptions (text, audio_duration, processing_time, "
-        "app_context, app_id, window_title, agent, working_dir, backend) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        "app_context, app_id, window_class, window_title, agent, working_dir, backend) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     const char* recent_sql =
         "SELECT id, timestamp, text, audio_duration, processing_time, "
-        "app_context, app_id, window_title, agent, working_dir, backend "
+        "app_context, app_id, window_class, window_title, agent, working_dir, backend "
         "FROM transcriptions ORDER BY id DESC LIMIT ?";
 
     if (sqlite3_prepare_v2(db_, insert_sql, -1, &insert_stmt_, nullptr) != SQLITE_OK) {
@@ -76,10 +76,11 @@ bool HistoryDb::insert(const std::string& text, double audio_duration, double pr
 
     bind_nullable(4, ctx.context);
     bind_nullable(5, ctx.app_id);
-    bind_nullable(6, ctx.title);
-    bind_nullable(7, ctx.agent);
-    bind_nullable(8, ctx.working_dir);
-    bind_nullable(9, backend);
+    bind_nullable(6, ctx.window_class);
+    bind_nullable(7, ctx.title);
+    bind_nullable(8, ctx.agent);
+    bind_nullable(9, ctx.working_dir);
+    bind_nullable(10, backend);
 
     int rc = sqlite3_step(insert_stmt_);
     if (rc != SQLITE_DONE) {
@@ -110,10 +111,11 @@ std::vector<HistoryEntry> HistoryDb::recent(int limit) {
         e.processing_time = sqlite3_column_double(recent_stmt_, 4);
         e.app_context = get_text(recent_stmt_, 5);
         e.app_id = get_text(recent_stmt_, 6);
-        e.window_title = get_text(recent_stmt_, 7);
-        e.agent = get_text(recent_stmt_, 8);
-        e.working_dir = get_text(recent_stmt_, 9);
-        e.backend = get_text(recent_stmt_, 10);
+        e.window_class = get_text(recent_stmt_, 7);
+        e.window_title = get_text(recent_stmt_, 8);
+        e.agent = get_text(recent_stmt_, 9);
+        e.working_dir = get_text(recent_stmt_, 10);
+        e.backend = get_text(recent_stmt_, 11);
         entries.push_back(std::move(e));
     }
 
@@ -130,6 +132,7 @@ bool HistoryDb::create_tables() {
             processing_time REAL,
             app_context TEXT,
             app_id TEXT,
+            window_class TEXT,
             window_title TEXT,
             agent TEXT,
             working_dir TEXT,

@@ -12,5 +12,6 @@ private:
     bool is_terminal_;
 
     std::expected<void, std::string> type_direct(const std::string& text);
-    std::expected<void, std::string> clipboard_paste(const std::string& text);
+    std::expected<void, std::string> terminal_paste(const std::string& text);
+    std::expected<void, std::string> general_paste(const std::string& text);
 };

@@ -37,7 +37,7 @@ TEST_CASE("HistoryDb", "[history]") {
         HistoryDb db;
         REQUIRE(db.open(tmp.path));
 
-        WindowInfo ctx{.app_id = "kitty", .title = "terminal"};
+        WindowInfo ctx{.app_id = "kitty", .window_class = "", .title = "terminal"};
         REQUIRE(db.insert("hello world", 2.5, 0.3, ctx, "lan"));
 
         auto entries = db.recent(1);
@@ -48,6 +48,21 @@ TEST_CASE("HistoryDb", "[history]") {
         REQUIRE(entries[0].app_id == "kitty");
         REQUIRE(entries[0].window_title == "terminal");
         REQUIRE(entries[0].backend == "lan");
+    }
+
+    SECTION("X11WindowClass") {
+        TmpDb tmp;
+        HistoryDb db;
+        REQUIRE(db.open(tmp.path));
+
+        WindowInfo ctx{.app_id = "", .window_class = "Firefox", .title = "browser"};
+        REQUIRE(db.insert("browser test", 1.0, 0.1, ctx, "lan"));
+
+        auto entries = db.recent(1);
+        REQUIRE(entries.size() == 1);
+        REQUIRE(entries[0].app_id.empty());
+        REQUIRE(entries[0].window_class == "Firefox");
+        REQUIRE(entries[0].window_title == "browser");
     }
 
     SECTION("LimitWorks") {

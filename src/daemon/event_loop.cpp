@@ -1,5 +1,7 @@
 #include "event_loop.hpp"
 
+#include <algorithm>
+#include <cctype>
 #include <cerrno>
 #include <cstring>
 #include <filesystem>
@@ -197,7 +199,11 @@ void EventLoop::run() {
     if (session_.state() == SessionState::Recording) {
         audio_capture_.stop();
     }
-    if (worker_.joinable()) {
+    
+    if (session_.state() == SessionState::Transcribing) {
+        log("Waiting for pending transcription to complete...");
+        on_transcription_complete();
+    } else if (worker_.joinable()) {
         worker_.join();
     }
 }
@@ -317,11 +323,14 @@ void EventLoop::on_transcription_complete() {
                         tr.processing_s, tr.text.size()));
 
         // Deliver output
-        bool is_terminal = !wr.context.app_id.empty() &&
-            (wr.context.app_id.find("kitty") != std::string::npos ||
-             wr.context.app_id.find("alacritty") != std::string::npos ||
-             wr.context.app_id.find("foot") != std::string::npos ||
-             wr.context.app_id.find("wezterm") != std::string::npos);
+        std::string app = !wr.context.app_id.empty() ? wr.context.app_id : wr.context.window_class;
+        std::transform(app.begin(), app.end(), app.begin(), ::tolower);
+
+        bool is_terminal = !app.empty() &&
+            (app.find("kitty") != std::string::npos ||
+             app.find("alacritty") != std::string::npos ||
+             app.find("foot") != std::string::npos ||
+             app.find("wezterm") != std::string::npos);
 
         auto output = make_output(wr.output_method, is_terminal);
         if (output && !tr.text.empty()) {
@@ -364,12 +373,13 @@ std::unique_ptr<OutputMethod> EventLoop::make_output(const std::string& method, 
 WindowInfo EventLoop::enrich_window_info(WindowInfo info) {
     if (info.pid > 0) {
         auto detection = agent_detector_.detect(info.pid);
+        std::string app = !info.app_id.empty() ? info.app_id : info.window_class;
         if (!detection.agent.empty()) {
             info.agent = detection.agent;
             info.working_dir = detection.working_dir;
-            info.context = detection.agent + " code on " + info.app_id;
+            info.context = detection.agent + " code on " + app;
         } else {
-            info.context = info.app_id;
+            info.context = app;
         }
     }
     return info;
