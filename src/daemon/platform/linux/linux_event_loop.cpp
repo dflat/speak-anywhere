@@ -15,7 +15,7 @@
 
 LinuxEventLoop::LinuxEventLoop(Config config, bool verbose)
     : config_(std::move(config)), verbose_(verbose),
-      ring_buf_(config_.audio.ring_buffer_bytes),
+      ring_buf_(config_.audio.ring_buffer_bytes()),
       audio_capture_(ring_buf_, config_.audio.sample_rate),
       detector_(config_.agents),
       core_(config_, verbose_, ring_buf_, audio_capture_,

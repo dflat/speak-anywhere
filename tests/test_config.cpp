@@ -42,7 +42,7 @@ TEST_CASE("Config", "[config]") {
         REQUIRE(cfg.output.default_method == "clipboard");
         REQUIRE(cfg.audio.sample_rate == 16000);
         REQUIRE(cfg.audio.max_seconds == 120);
-        REQUIRE(cfg.audio.ring_buffer_bytes == 2 * 1024 * 1024);
+        REQUIRE(cfg.audio.ring_buffer_bytes() == 120 * 16000 * sizeof(int16_t));
         REQUIRE(cfg.agents.size() == 4);
     }
 

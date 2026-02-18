@@ -29,6 +29,7 @@ bool HistoryDb::open(const std::string& path) {
     sqlite3_exec(db_, "PRAGMA journal_mode=WAL;", nullptr, nullptr, nullptr);
 
     if (!create_tables()) return false;
+    migrate_schema();
 
     // Prepare statements
     const char* insert_sql =
@@ -148,4 +149,22 @@ bool HistoryDb::create_tables() {
         return false;
     }
     return true;
+}
+
+void HistoryDb::migrate_schema() {
+    // ALTER TABLE ADD COLUMN is a no-op if the column already exists in SQLite
+    // (returns error, which we ignore). This handles upgrades from older schemas.
+    static const char* migrations[] = {
+        "ALTER TABLE transcriptions ADD COLUMN app_context TEXT",
+        "ALTER TABLE transcriptions ADD COLUMN app_id TEXT",
+        "ALTER TABLE transcriptions ADD COLUMN window_class TEXT",
+        "ALTER TABLE transcriptions ADD COLUMN window_title TEXT",
+        "ALTER TABLE transcriptions ADD COLUMN agent TEXT",
+        "ALTER TABLE transcriptions ADD COLUMN working_dir TEXT",
+        "ALTER TABLE transcriptions ADD COLUMN backend TEXT",
+    };
+
+    for (const char* sql : migrations) {
+        sqlite3_exec(db_, sql, nullptr, nullptr, nullptr);
+    }
 }

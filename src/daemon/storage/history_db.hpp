@@ -40,6 +40,7 @@ public:
 
 private:
     bool create_tables();
+    void migrate_schema();
 
     sqlite3* db_ = nullptr;
     sqlite3_stmt* insert_stmt_ = nullptr;
