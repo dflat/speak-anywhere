@@ -29,16 +29,24 @@ std::expected<void, std::string> ClipboardOutput::deliver(const std::string& tex
 
     // Parent: write text to pipe
     ::close(pipefd[0]);
-    ssize_t written = ::write(pipefd[1], text.data(), text.size());
+    size_t total_written = 0;
+    while (total_written < text.size()) {
+        ssize_t n = ::write(pipefd[1], text.data() + total_written, text.size() - total_written);
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            ::close(pipefd[1]);
+            ::waitpid(pid, nullptr, 0);
+            return std::unexpected(std::string("write() failed: ") + std::strerror(errno));
+        }
+        total_written += static_cast<size_t>(n);
+    }
     ::close(pipefd[1]);
 
-    if (written < 0) {
-        ::waitpid(pid, nullptr, 0);
-        return std::unexpected(std::string("write() failed: ") + std::strerror(errno));
-    }
-
     int status;
-    ::waitpid(pid, &status, 0);
+    while (::waitpid(pid, &status, 0) < 0) {
+        if (errno == EINTR) continue;
+        return std::unexpected(std::string("waitpid() failed: ") + std::strerror(errno));
+    }
 
     if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
         return std::unexpected("wl-copy exited with code " + std::to_string(WEXITSTATUS(status)));

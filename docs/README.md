@@ -1,15 +1,18 @@
 # speak-anywhere Setup Guide
 
-## 1. Build speak-anywhere
+## 1. Build and Install speak-anywhere
 
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build -j$(nproc)
+
+# Install to ~/.local/bin and restart daemon
+./install.sh
 ```
 
-Produces two binaries in `build/`:
-- `speak-anywhere` — daemon
-- `sa` — CLI client
+Produces two binaries:
+- `speak-anywhere` — daemon (installed to `~/.local/bin/`)
+- `sa` — CLI client (installed to `~/.local/bin/`)
 
 ## 2. Set up whisper-server (Ubuntu LAN machine)
 
@@ -145,12 +148,12 @@ See `config/config.example.json` for all options.
 
 ### As a systemd user service
 
-```bash
-# Install binaries
-cp build/speak-anywhere build/sa ~/.local/bin/
+The `install.sh` script automatically copies binaries to `~/.local/bin`. To set up the service for the first time:
 
+```bash
 # Install and start the service
 cp systemd/speak-anywhere.service ~/.config/systemd/user/
+systemctl --user daemon-reload
 systemctl --user enable --now speak-anywhere
 ```
 
