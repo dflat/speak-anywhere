@@ -1,11 +1,11 @@
-#include "clipboard_output.hpp"
+#include "platform/linux/wayland_clipboard_output.hpp"
 
 #include <cerrno>
 #include <cstring>
 #include <sys/wait.h>
 #include <unistd.h>
 
-std::expected<void, std::string> ClipboardOutput::deliver(const std::string& text) {
+std::expected<void, std::string> WaylandClipboardOutput::deliver(const std::string& text) {
     int pipefd[2];
     if (::pipe(pipefd) < 0) {
         return std::unexpected(std::string("pipe() failed: ") + std::strerror(errno));
@@ -19,7 +19,6 @@ std::expected<void, std::string> ClipboardOutput::deliver(const std::string& tex
     }
 
     if (pid == 0) {
-        // Child: redirect stdin from pipe, exec wl-copy
         ::close(pipefd[1]);
         ::dup2(pipefd[0], STDIN_FILENO);
         ::close(pipefd[0]);
@@ -27,7 +26,6 @@ std::expected<void, std::string> ClipboardOutput::deliver(const std::string& tex
         ::_exit(127);
     }
 
-    // Parent: write text to pipe
     ::close(pipefd[0]);
     size_t total_written = 0;
     while (total_written < text.size()) {

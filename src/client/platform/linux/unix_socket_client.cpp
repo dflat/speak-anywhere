@@ -1,26 +1,25 @@
-#include "ipc_client.hpp"
+#include "platform/linux/unix_socket_client.hpp"
 
 #include <cerrno>
-#include <cstdlib>
 #include <cstring>
 #include <poll.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
 
-IpcClient::IpcClient() = default;
+UnixSocketClient::UnixSocketClient() = default;
 
-IpcClient::~IpcClient() {
+UnixSocketClient::~UnixSocketClient() {
     close();
 }
 
-bool IpcClient::connect(const std::string& socket_path) {
+bool UnixSocketClient::connect(const std::string& endpoint) {
     fd_ = ::socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
     if (fd_ < 0) return false;
 
     sockaddr_un addr{};
     addr.sun_family = AF_UNIX;
-    std::strncpy(addr.sun_path, socket_path.c_str(), sizeof(addr.sun_path) - 1);
+    std::strncpy(addr.sun_path, endpoint.c_str(), sizeof(addr.sun_path) - 1);
 
     if (::connect(fd_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
         ::close(fd_);
@@ -30,14 +29,14 @@ bool IpcClient::connect(const std::string& socket_path) {
     return true;
 }
 
-bool IpcClient::send(const nlohmann::json& cmd) {
+bool UnixSocketClient::send(const nlohmann::json& cmd) {
     if (fd_ < 0) return false;
     std::string msg = cmd.dump() + "\n";
     ssize_t sent = ::send(fd_, msg.data(), msg.size(), MSG_NOSIGNAL);
     return sent == static_cast<ssize_t>(msg.size());
 }
 
-bool IpcClient::recv(nlohmann::json& response, int timeout_ms) {
+bool UnixSocketClient::recv(nlohmann::json& response, int timeout_ms) {
     if (fd_ < 0) return false;
 
     pollfd pfd{.fd = fd_, .events = POLLIN, .revents = 0};
@@ -64,17 +63,9 @@ bool IpcClient::recv(nlohmann::json& response, int timeout_ms) {
     }
 }
 
-void IpcClient::close() {
+void UnixSocketClient::close() {
     if (fd_ >= 0) {
         ::close(fd_);
         fd_ = -1;
     }
-}
-
-std::string IpcClient::default_socket_path() {
-    const char* xdg = std::getenv("XDG_RUNTIME_DIR");
-    if (xdg) {
-        return std::string(xdg) + "/speak-anywhere.sock";
-    }
-    return "/tmp/speak-anywhere.sock";
 }

@@ -1,33 +1,9 @@
 #include "config.hpp"
-#include "event_loop.hpp"
+#include "platform/daemonizer.hpp"
+#include "platform/linux/linux_event_loop.hpp"
 
-#include <cstring>
-#include <filesystem>
 #include <print>
-#include <signal.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-static void daemonize() {
-    pid_t pid = fork();
-    if (pid < 0) {
-        std::println(stderr, "fork() failed: {}", std::strerror(errno));
-        _exit(1);
-    }
-    if (pid > 0) _exit(0); // parent exits
-
-    setsid();
-
-    // Fork again to prevent reacquiring a controlling terminal
-    pid = fork();
-    if (pid < 0) _exit(1);
-    if (pid > 0) _exit(0);
-
-    // Redirect stdio to /dev/null
-    freopen("/dev/null", "r", stdin);
-    freopen("/dev/null", "w", stdout);
-    freopen("/dev/null", "w", stderr);
-}
+#include <string>
 
 int main(int argc, char* argv[]) {
     bool foreground = false;
@@ -62,7 +38,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (!foreground) {
-        daemonize();
+        platform::daemonize();
     }
 
     if (verbose && foreground) {
@@ -70,7 +46,7 @@ int main(int argc, char* argv[]) {
                      config.backend.type, config.backend.url);
     }
 
-    EventLoop loop(std::move(config), verbose);
+    LinuxEventLoop loop(std::move(config), verbose);
     if (!loop.init()) {
         std::println(stderr, "Failed to initialize event loop");
         return 1;

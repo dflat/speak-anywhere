@@ -1,6 +1,7 @@
 #include "config.hpp"
 
-#include <cstdlib>
+#include "platform/platform_paths.hpp"
+
 #include <filesystem>
 #include <fstream>
 #include <nlohmann/json.hpp>
@@ -51,17 +52,10 @@ Config Config::load(const std::string& path) {
 }
 
 Config Config::load_default() {
-    const char* xdg = std::getenv("XDG_CONFIG_HOME");
-    fs::path config_dir;
-    if (xdg) {
-        config_dir = fs::path(xdg) / "speak-anywhere";
-    } else {
-        const char* home = std::getenv("HOME");
-        if (!home) return Config{};
-        config_dir = fs::path(home) / ".config" / "speak-anywhere";
-    }
+    auto dir = platform::config_dir();
+    if (dir.empty()) return Config{};
 
-    auto config_path = config_dir / "config.json";
+    auto config_path = fs::path(dir) / "config.json";
     if (fs::exists(config_path)) {
         return load(config_path.string());
     }

@@ -1,24 +1,24 @@
 #pragma once
 
+#include "platform/audio_capture.hpp"
 #include "ring_buffer.hpp"
 
 #include <atomic>
 #include <cstdint>
-#include <functional>
 #include <pipewire/pipewire.h>
 #include <spa/param/audio/format-utils.h>
 
-class AudioCapture {
+class PipeWireCapture : public AudioCapture {
 public:
-    explicit AudioCapture(RingBuffer& ring_buf, uint32_t sample_rate = 16000);
-    ~AudioCapture();
+    explicit PipeWireCapture(RingBuffer& ring_buf, uint32_t sample_rate = 16000);
+    ~PipeWireCapture() override;
 
-    AudioCapture(const AudioCapture&) = delete;
-    AudioCapture& operator=(const AudioCapture&) = delete;
+    PipeWireCapture(const PipeWireCapture&) = delete;
+    PipeWireCapture& operator=(const PipeWireCapture&) = delete;
 
-    bool start();
-    void stop();
-    bool is_capturing() const { return capturing_.load(std::memory_order_relaxed); }
+    bool start() override;
+    void stop() override;
+    bool is_capturing() const override { return capturing_.load(std::memory_order_relaxed); }
 
 private:
     static void on_process(void* userdata);

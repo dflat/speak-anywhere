@@ -1,12 +1,21 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "audio_capture.hpp"
+#include "platform/audio_capture.hpp"
 #include "ring_buffer.hpp"
 #include "session.hpp"
 
+class MockAudioCapture : public AudioCapture {
+public:
+    bool start() override { capturing_ = true; return true; }
+    void stop() override { capturing_ = false; }
+    bool is_capturing() const override { return capturing_; }
+private:
+    bool capturing_ = false;
+};
+
 TEST_CASE("Session state machine", "[session]") {
     RingBuffer ring(1024);
-    AudioCapture capture(ring, 16000);
+    MockAudioCapture capture;
     Session session(ring, capture, 16000);
 
     SECTION("InitialStateIdle") {

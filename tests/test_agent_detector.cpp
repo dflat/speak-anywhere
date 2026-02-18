@@ -1,11 +1,11 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "sway/agent_detector.hpp"
+#include "platform/linux/procfs_detector.hpp"
 
 #include <sys/wait.h>
 #include <unistd.h>
 
-TEST_CASE("AgentDetector", "[agent]") {
+TEST_CASE("ProcfsDetector", "[agent]") {
 
     SECTION("DetectSelf") {
         // Get our own comm name and use it as a "known agent"
@@ -25,7 +25,7 @@ TEST_CASE("AgentDetector", "[agent]") {
         REQUIRE_FALSE(our_comm.empty());
 
         // Detect from parent PID — our process should be found as a child of parent
-        AgentDetector detector({our_comm});
+        ProcfsDetector detector({our_comm});
         auto result = detector.detect(getppid());
         REQUIRE(result.agent == our_comm);
         REQUIRE_FALSE(result.working_dir.empty());
@@ -61,7 +61,7 @@ TEST_CASE("AgentDetector", "[agent]") {
             }
         }
 
-        AgentDetector detector({child_comm});
+        ProcfsDetector detector({child_comm});
         auto result = detector.detect(getpid());
         REQUIRE(result.agent == child_comm);
 
@@ -71,14 +71,14 @@ TEST_CASE("AgentDetector", "[agent]") {
     }
 
     SECTION("NoMatchReturnsEmpty") {
-        AgentDetector detector({"definitely_not_a_real_process_name_xyz"});
+        ProcfsDetector detector({"definitely_not_a_real_process_name_xyz"});
         auto result = detector.detect(getpid());
         REQUIRE(result.agent.empty());
         REQUIRE(result.working_dir.empty());
     }
 
     SECTION("InvalidPidReturnsEmpty") {
-        AgentDetector detector({"anything"});
+        ProcfsDetector detector({"anything"});
 
         auto r1 = detector.detect(0);
         REQUIRE(r1.agent.empty());

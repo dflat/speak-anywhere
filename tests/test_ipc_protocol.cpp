@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "ipc_client.hpp"
-#include "ipc_server.hpp"
+#include "platform/linux/unix_socket_client.hpp"
+#include "platform/linux/unix_socket_server.hpp"
 
 #include <filesystem>
 #include <nlohmann/json.hpp>
@@ -25,7 +25,7 @@ TEST_CASE("IPC protocol", "[ipc]") {
 
     SECTION("ServerStartStop") {
         {
-            IpcServer server;
+            UnixSocketServer server;
             REQUIRE(server.start(sock_path));
             REQUIRE(std::filesystem::exists(sock_path));
             server.stop();
@@ -34,10 +34,10 @@ TEST_CASE("IPC protocol", "[ipc]") {
     }
 
     SECTION("ClientConnects") {
-        IpcServer server;
+        UnixSocketServer server;
         REQUIRE(server.start(sock_path));
 
-        IpcClient client;
+        UnixSocketClient client;
         REQUIRE(client.connect(sock_path));
 
         int client_fd = server.accept_client();
@@ -49,10 +49,10 @@ TEST_CASE("IPC protocol", "[ipc]") {
     }
 
     SECTION("RoundTrip") {
-        IpcServer server;
+        UnixSocketServer server;
         REQUIRE(server.start(sock_path));
 
-        IpcClient client;
+        UnixSocketClient client;
         REQUIRE(client.connect(sock_path));
 
         int client_fd = server.accept_client();
@@ -88,10 +88,10 @@ TEST_CASE("IPC protocol", "[ipc]") {
     }
 
     SECTION("MultipleMessages") {
-        IpcServer server;
+        UnixSocketServer server;
         REQUIRE(server.start(sock_path));
 
-        IpcClient client;
+        UnixSocketClient client;
         REQUIRE(client.connect(sock_path));
 
         int client_fd = server.accept_client();
@@ -124,10 +124,10 @@ TEST_CASE("IPC protocol", "[ipc]") {
     }
 
     SECTION("ClientDisconnect") {
-        IpcServer server;
+        UnixSocketServer server;
         REQUIRE(server.start(sock_path));
 
-        IpcClient client;
+        UnixSocketClient client;
         REQUIRE(client.connect(sock_path));
 
         int client_fd = server.accept_client();

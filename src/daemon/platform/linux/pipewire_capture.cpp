@@ -1,20 +1,20 @@
-#include "audio_capture.hpp"
+#include "platform/linux/pipewire_capture.hpp"
 
 #include <print>
 #include <spa/param/audio/format-utils.h>
 #include <spa/utils/result.h>
 
-AudioCapture::AudioCapture(RingBuffer& ring_buf, uint32_t sample_rate)
+PipeWireCapture::PipeWireCapture(RingBuffer& ring_buf, uint32_t sample_rate)
     : ring_buf_(ring_buf), sample_rate_(sample_rate) {
     pw_init(nullptr, nullptr);
 }
 
-AudioCapture::~AudioCapture() {
+PipeWireCapture::~PipeWireCapture() {
     stop();
     pw_deinit();
 }
 
-bool AudioCapture::start() {
+bool PipeWireCapture::start() {
     if (capturing_.load(std::memory_order_relaxed)) return true;
 
     loop_ = pw_thread_loop_new("speak-anywhere", nullptr);
@@ -92,7 +92,7 @@ bool AudioCapture::start() {
     return true;
 }
 
-void AudioCapture::stop() {
+void PipeWireCapture::stop() {
     if (!capturing_.load(std::memory_order_relaxed)) return;
 
     capturing_.store(false, std::memory_order_release);
@@ -110,8 +110,8 @@ void AudioCapture::stop() {
     }
 }
 
-void AudioCapture::on_process(void* userdata) {
-    auto* self = static_cast<AudioCapture*>(userdata);
+void PipeWireCapture::on_process(void* userdata) {
+    auto* self = static_cast<PipeWireCapture*>(userdata);
 
     auto* buf = pw_stream_dequeue_buffer(self->stream_);
     if (!buf) return;
@@ -132,8 +132,8 @@ void AudioCapture::on_process(void* userdata) {
     pw_stream_queue_buffer(self->stream_, buf);
 }
 
-void AudioCapture::on_state_changed(void* /*userdata*/, enum pw_stream_state old,
-                                    enum pw_stream_state state, const char* error) {
+void PipeWireCapture::on_state_changed(void* /*userdata*/, enum pw_stream_state old,
+                                       enum pw_stream_state state, const char* error) {
     if (error) {
         std::println(stderr, "audio: stream state {} -> {}: {}",
                      pw_stream_state_as_string(old),

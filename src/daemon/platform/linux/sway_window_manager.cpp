@@ -1,21 +1,21 @@
-#include "ipc.hpp"
+#include "platform/linux/sway_window_manager.hpp"
 
 #include <cerrno>
-#include <cstring>
 #include <cstdlib>
+#include <cstring>
 #include <print>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
 
-SwayIpc::SwayIpc() = default;
+SwayWindowManager::SwayWindowManager() = default;
 
-SwayIpc::~SwayIpc() {
+SwayWindowManager::~SwayWindowManager() {
     if (query_fd_ >= 0) ::close(query_fd_);
     if (event_fd_ >= 0) ::close(event_fd_);
 }
 
-bool SwayIpc::connect() {
+bool SwayWindowManager::connect() {
     const char* sock = std::getenv("SWAYSOCK");
     if (!sock) {
         std::println(stderr, "sway: $SWAYSOCK not set");
@@ -29,7 +29,7 @@ bool SwayIpc::connect() {
     return true;
 }
 
-bool SwayIpc::subscribe_window_events() {
+bool SwayWindowManager::subscribe_focus_events() {
     event_fd_ = connect_socket(sway_sock_);
     if (event_fd_ < 0) return false;
 
@@ -39,7 +39,6 @@ bool SwayIpc::subscribe_window_events() {
         return false;
     }
 
-    // Read subscribe response
     uint32_t type;
     std::string payload;
     if (!recv_message(event_fd_, type, payload)) {
@@ -51,7 +50,7 @@ bool SwayIpc::subscribe_window_events() {
     return true;
 }
 
-WindowInfo SwayIpc::get_focused_window() {
+WindowInfo SwayWindowManager::get_focused_window() {
     if (query_fd_ < 0) return {};
 
     if (!send_message(query_fd_, MSG_GET_TREE)) return {};
@@ -68,7 +67,7 @@ WindowInfo SwayIpc::get_focused_window() {
     }
 }
 
-bool SwayIpc::read_event(WindowInfo& info) {
+bool SwayWindowManager::read_event(WindowInfo& info) {
     if (event_fd_ < 0) return false;
 
     uint32_t type;
@@ -97,7 +96,7 @@ bool SwayIpc::read_event(WindowInfo& info) {
     }
 }
 
-int SwayIpc::connect_socket(const std::string& path) {
+int SwayWindowManager::connect_socket(const std::string& path) {
     int fd = ::socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
     if (fd < 0) return -1;
 
@@ -113,8 +112,7 @@ int SwayIpc::connect_socket(const std::string& path) {
     return fd;
 }
 
-bool SwayIpc::send_message(int fd, uint32_t type, const std::string& payload) {
-    // Header: "i3-ipc" (6 bytes) + length (4 bytes) + type (4 bytes)
+bool SwayWindowManager::send_message(int fd, uint32_t type, const std::string& payload) {
     uint32_t len = static_cast<uint32_t>(payload.size());
     char header[14];
     std::memcpy(header, MAGIC, 6);
@@ -129,8 +127,7 @@ bool SwayIpc::send_message(int fd, uint32_t type, const std::string& payload) {
     return true;
 }
 
-bool SwayIpc::recv_message(int fd, uint32_t& type, std::string& payload) {
-    // Read header
+bool SwayWindowManager::recv_message(int fd, uint32_t& type, std::string& payload) {
     char header[14];
     size_t read_total = 0;
     while (read_total < 14) {
@@ -156,7 +153,7 @@ bool SwayIpc::recv_message(int fd, uint32_t& type, std::string& payload) {
     return true;
 }
 
-WindowInfo SwayIpc::find_focused(const nlohmann::json& node) {
+WindowInfo SwayWindowManager::find_focused(const nlohmann::json& node) {
     if (node.value("focused", false)) {
         WindowInfo info;
         info.app_id = node.value("app_id", "");

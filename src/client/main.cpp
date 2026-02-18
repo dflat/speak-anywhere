@@ -1,4 +1,5 @@
-#include "ipc_client.hpp"
+#include "platform/linux/unix_socket_client.hpp"
+#include "platform/platform_paths.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -60,8 +61,8 @@ int main(int argc, char* argv[]) {
     }
 
     // Connect and send
-    IpcClient client;
-    auto sock_path = IpcClient::default_socket_path();
+    UnixSocketClient client;
+    auto sock_path = platform::ipc_endpoint();
 
     if (!client.connect(sock_path)) {
         std::println(stderr, "Failed to connect to daemon at {}", sock_path);

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "output.hpp"
+#include "output/output.hpp"
 
-class ClipboardOutput : public OutputMethod {
+class WaylandClipboardOutput : public OutputMethod {
 public:
     std::expected<void, std::string> deliver(const std::string& text) override;
 };

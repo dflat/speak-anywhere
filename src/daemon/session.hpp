@@ -1,6 +1,6 @@
 #pragma once
 
-#include "audio_capture.hpp"
+#include "platform/audio_capture.hpp"
 #include "ring_buffer.hpp"
 #include "sway/window_info.hpp"
 #include "whisper/backend.hpp"
