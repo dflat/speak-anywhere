@@ -184,7 +184,11 @@ void DaemonCore::on_transcription_complete() {
 
         auto output = output_factory_(wr.output_method, is_terminal);
         if (output && !tr.text.empty()) {
-            auto res = output->deliver(tr.text, win_mgr_);
+            std::string final_text = tr.text;
+            if (config_.output.auto_space && !final_text.empty() && final_text.back() != ' ') {
+                final_text += " ";
+            }
+            auto res = output->deliver(final_text, win_mgr_);
             if (!res) {
                 log("Output delivery failed: " + res.error());
             }

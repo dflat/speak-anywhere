@@ -33,6 +33,7 @@ Config Config::load(const std::string& path) {
             auto& o = j["output"];
             if (o.contains("default")) cfg.output.default_method = o["default"].get<std::string>();
             if (o.contains("paste_delay_ms")) cfg.output.paste_delay_ms = o["paste_delay_ms"].get<uint32_t>();
+            if (o.contains("auto_space")) cfg.output.auto_space = o["auto_space"].get<bool>();
         }
 
         if (j.contains("audio")) {
