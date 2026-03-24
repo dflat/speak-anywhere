@@ -16,6 +16,7 @@ struct Config {
         std::string default_method = "clipboard";
         uint32_t paste_delay_ms = 50;
         bool auto_space = true;
+        bool single_line = true;
     } output;
 
     struct Audio {

@@ -185,6 +185,19 @@ void DaemonCore::on_transcription_complete() {
         auto output = output_factory_(wr.output_method, is_terminal);
         if (output && !tr.text.empty()) {
             std::string final_text = tr.text;
+
+            if (config_.output.single_line) {
+                // Replace all newlines and tabs with spaces
+                std::replace(final_text.begin(), final_text.end(), '\n', ' ');
+                std::replace(final_text.begin(), final_text.end(), '\r', ' ');
+                std::replace(final_text.begin(), final_text.end(), '\t', ' ');
+
+                // Collapse multiple spaces into one
+                auto new_end = std::unique(final_text.begin(), final_text.end(),
+                                           [](char a, char b) { return a == ' ' && b == ' '; });
+                final_text.erase(new_end, final_text.end());
+            }
+
             if (config_.output.auto_space && !final_text.empty() && final_text.back() != ' ') {
                 final_text += " ";
             }

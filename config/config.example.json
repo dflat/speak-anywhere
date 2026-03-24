@@ -8,7 +8,8 @@
   "output": {
     "default": "clipboard",
     "paste_delay_ms": 50,
-    "auto_space": true
+    "auto_space": true,
+    "single_line": true
   },
   "audio": {
     "sample_rate": 16000,
