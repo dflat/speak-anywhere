@@ -21,8 +21,8 @@ LinuxEventLoop::LinuxEventLoop(Config config, bool verbose)
       core_(config_, verbose_, ring_buf_, audio_capture_,
             detector_, ipc_server_,
             // OutputFactory
-            [](const std::string& method, bool is_terminal) -> std::unique_ptr<OutputMethod> {
-                if (method == "type") return std::make_unique<WaylandTypeOutput>(is_terminal);
+            [this](const std::string& method, bool is_terminal) -> std::unique_ptr<OutputMethod> {
+                if (method == "type") return std::make_unique<WaylandTypeOutput>(is_terminal, config_.output.paste_delay_ms);
                 return std::make_unique<WaylandClipboardOutput>();
             },
             // NotifyCallback
