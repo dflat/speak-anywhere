@@ -10,4 +10,5 @@ public:
     virtual WindowInfo get_focused_window() = 0;
     virtual int event_fd() const = 0;
     virtual bool read_event(WindowInfo& info) = 0;
+    virtual bool is_modifier_down() = 0;
 };

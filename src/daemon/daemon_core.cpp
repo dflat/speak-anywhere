@@ -11,13 +11,15 @@
 DaemonCore::DaemonCore(Config config, bool verbose,
                        RingBuffer& ring_buf, AudioCapture& audio,
                        ProcessDetector& detector, IpcServer& ipc,
+                       WindowManager& win_mgr,
                        OutputFactory output_factory, NotifyCallback notify)
     : config_(std::move(config)), verbose_(verbose),
-      ring_buf_(ring_buf), audio_(audio),
-      detector_(detector), ipc_(ipc),
+      ring_buf_(ring_buf), audio_(audio), detector_(detector),
+      ipc_(ipc), win_mgr_(win_mgr),
       output_factory_(std::move(output_factory)),
       notify_(std::move(notify)),
-      session_(ring_buf_, audio_, config_.audio.sample_rate) {}
+      session_(ring_buf, audio, config_.audio.sample_rate) {}
+
 
 DaemonCore::~DaemonCore() = default;
 
@@ -182,7 +184,7 @@ void DaemonCore::on_transcription_complete() {
 
         auto output = output_factory_(wr.output_method, is_terminal);
         if (output && !tr.text.empty()) {
-            auto res = output->deliver(tr.text);
+            auto res = output->deliver(tr.text, win_mgr_);
             if (!res) {
                 log("Output delivery failed: " + res.error());
             }

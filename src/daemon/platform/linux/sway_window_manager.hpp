@@ -19,6 +19,7 @@ public:
     WindowInfo get_focused_window() override;
     int event_fd() const override { return event_fd_; }
     bool read_event(WindowInfo& info) override;
+    bool is_modifier_down() override;
 
 private:
     static constexpr char MAGIC[] = "i3-ipc";

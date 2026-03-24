@@ -29,6 +29,7 @@ public:
     DaemonCore(Config config, bool verbose,
                RingBuffer& ring_buf, AudioCapture& audio,
                ProcessDetector& detector, IpcServer& ipc,
+               WindowManager& win_mgr,
                OutputFactory output_factory, NotifyCallback notify);
     ~DaemonCore();
 
@@ -71,6 +72,7 @@ private:
     AudioCapture& audio_;
     ProcessDetector& detector_;
     IpcServer& ipc_;
+    WindowManager& win_mgr_;
 
     OutputFactory output_factory_;
     NotifyCallback notify_;

@@ -19,7 +19,7 @@ LinuxEventLoop::LinuxEventLoop(Config config, bool verbose)
       audio_capture_(ring_buf_, config_.audio.sample_rate),
       detector_(config_.agents),
       core_(config_, verbose_, ring_buf_, audio_capture_,
-            detector_, ipc_server_,
+            detector_, ipc_server_, window_mgr_,
             // OutputFactory
             [this](const std::string& method, bool is_terminal) -> std::unique_ptr<OutputMethod> {
                 if (method == "type") return std::make_unique<WaylandTypeOutput>(is_terminal, config_.output.paste_delay_ms);

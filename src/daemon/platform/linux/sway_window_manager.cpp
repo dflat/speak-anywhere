@@ -3,16 +3,77 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
+#include <fcntl.h>
+#include <filesystem>
+#include <linux/input.h>
 #include <print>
+#include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+
+namespace fs = std::filesystem;
+
+#ifndef NLONGS
+#define NLONGS(x) (((x) + 8 * sizeof(long) - 1) / (8 * sizeof(long)))
+#endif
 
 SwayWindowManager::SwayWindowManager() = default;
 
 SwayWindowManager::~SwayWindowManager() {
     if (query_fd_ >= 0) ::close(query_fd_);
     if (event_fd_ >= 0) ::close(event_fd_);
+}
+
+bool SwayWindowManager::is_modifier_down() {
+    // Check all event devices for modifier keys
+    try {
+        if (!fs::exists("/dev/input")) return false;
+        for (auto const& entry : fs::directory_iterator("/dev/input")) {
+            if (entry.path().filename().string().starts_with("event")) {
+                int fd = ::open(entry.path().c_str(), O_RDONLY | O_NONBLOCK);
+                if (fd < 0) continue;
+
+                // Check if it's a keyboard (supports KEY_LEFTCTRL)
+                unsigned long key_bits[NLONGS(KEY_CNT)] = {0};
+                if (::ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), key_bits) < 0) {
+                    ::close(fd);
+                    continue;
+                }
+
+                auto test_bit = [&](int bit) {
+                    return (key_bits[bit / (8 * sizeof(long))] >> (bit % (8 * sizeof(long)))) & 1;
+                };
+
+                if (!test_bit(KEY_LEFTCTRL) && !test_bit(KEY_RIGHTCTRL) &&
+                    !test_bit(KEY_LEFTALT) && !test_bit(KEY_RIGHTALT) &&
+                    !test_bit(KEY_LEFTMETA) && !test_bit(KEY_RIGHTMETA)) {
+                    ::close(fd);
+                    continue;
+                }
+
+                // It is a keyboard, check current state
+                unsigned long key_state[NLONGS(KEY_CNT)] = {0};
+                if (::ioctl(fd, EVIOCGKEY(sizeof(key_state)), key_state) >= 0) {
+                    auto is_down = [&](int bit) {
+                        return (key_state[bit / (8 * sizeof(long))] >> (bit % (8 * sizeof(long)))) & 1;
+                    };
+
+                    if (is_down(KEY_LEFTCTRL) || is_down(KEY_RIGHTCTRL) ||
+                        is_down(KEY_LEFTALT) || is_down(KEY_RIGHTALT) ||
+                        is_down(KEY_LEFTMETA) || is_down(KEY_RIGHTMETA) ||
+                        is_down(KEY_LEFTSHIFT) || is_down(KEY_RIGHTSHIFT)) {
+                        ::close(fd);
+                        return true;
+                    }
+                }
+                ::close(fd);
+            }
+        }
+    } catch (...) {
+        return false;
+    }
+    return false;
 }
 
 bool SwayWindowManager::connect() {
@@ -51,8 +112,6 @@ bool SwayWindowManager::subscribe_focus_events() {
 }
 
 WindowInfo SwayWindowManager::get_focused_window() {
-    if (query_fd_ < 0) return {};
-
     if (!send_message(query_fd_, MSG_GET_TREE)) return {};
 
     uint32_t type;
@@ -60,8 +119,8 @@ WindowInfo SwayWindowManager::get_focused_window() {
     if (!recv_message(query_fd_, type, payload)) return {};
 
     try {
-        auto tree = nlohmann::json::parse(payload);
-        return find_focused(tree);
+        auto j = nlohmann::json::parse(payload);
+        return find_focused(j);
     } catch (...) {
         return {};
     }

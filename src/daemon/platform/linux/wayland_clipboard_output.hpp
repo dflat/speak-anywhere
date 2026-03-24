@@ -4,5 +4,5 @@
 
 class WaylandClipboardOutput : public OutputMethod {
 public:
-    std::expected<void, std::string> deliver(const std::string& text) override;
+    std::expected<void, std::string> deliver(const std::string& text, WindowManager& win) override;
 };

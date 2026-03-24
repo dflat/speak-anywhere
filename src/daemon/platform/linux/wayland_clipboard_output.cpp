@@ -5,7 +5,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-std::expected<void, std::string> WaylandClipboardOutput::deliver(const std::string& text) {
+std::expected<void, std::string> WaylandClipboardOutput::deliver(const std::string& text, WindowManager& /*win*/) {
     int pipefd[2];
     if (::pipe(pipefd) < 0) {
         return std::unexpected(std::string("pipe() failed: ") + std::strerror(errno));
