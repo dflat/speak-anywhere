@@ -6,8 +6,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-WaylandTypeOutput::WaylandTypeOutput(bool is_terminal)
-    : is_terminal_(is_terminal) {}
+WaylandTypeOutput::WaylandTypeOutput(bool is_terminal, uint32_t delay_ms)
+    : is_terminal_(is_terminal), delay_ms_(delay_ms) {}
 
 std::expected<void, std::string> WaylandTypeOutput::deliver(const std::string& text) {
     if (is_terminal_) {
@@ -21,7 +21,7 @@ std::expected<void, std::string> WaylandTypeOutput::terminal_paste(const std::st
     auto res = clip.deliver(text);
     if (!res) return res;
 
-    ::usleep(50000); // 50ms delay for clipboard sync
+    ::usleep(delay_ms_ * 1000);
 
     pid_t pid = ::fork();
     if (pid < 0) {
@@ -29,7 +29,11 @@ std::expected<void, std::string> WaylandTypeOutput::terminal_paste(const std::st
     }
 
     if (pid == 0) {
-        ::execlp("wtype", "wtype", "-M", "ctrl", "-M", "shift", "-k", "v", "-m", "shift", "-m", "ctrl", nullptr);
+        // Neutralize Alt, Logo, and Shift before pasting with Ctrl+Shift+V
+        ::execlp("wtype", "wtype",
+                 "-m", "alt", "-m", "logo", "-m", "shift",
+                 "-M", "ctrl", "-M", "shift", "-k", "v",
+                 "-m", "shift", "-m", "ctrl", nullptr);
         ::_exit(127);
     }
 
@@ -51,7 +55,7 @@ std::expected<void, std::string> WaylandTypeOutput::general_paste(const std::str
     auto res = clip.deliver(text);
     if (!res) return res;
 
-    ::usleep(50000); // 50ms delay for clipboard sync
+    ::usleep(delay_ms_ * 1000);
 
     pid_t pid = ::fork();
     if (pid < 0) {
@@ -59,7 +63,11 @@ std::expected<void, std::string> WaylandTypeOutput::general_paste(const std::str
     }
 
     if (pid == 0) {
-        ::execlp("wtype", "wtype", "-M", "ctrl", "-k", "v", "-m", "ctrl", nullptr);
+        // Neutralize Alt, Logo, and Shift before pasting with Ctrl+V
+        ::execlp("wtype", "wtype",
+                 "-m", "alt", "-m", "logo", "-m", "shift",
+                 "-M", "ctrl", "-k", "v",
+                 "-m", "ctrl", nullptr);
         ::_exit(127);
     }
 
