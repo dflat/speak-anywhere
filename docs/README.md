@@ -157,6 +157,16 @@ systemctl --user daemon-reload
 systemctl --user enable --now speak-anywhere
 ```
 
+#### Important: Sway Environment Variables
+For the daemon to communicate with Sway (for window context) and Wayland (for clipboard/typing), you must import the session environment variables into the systemd user manager. Add this to your `~/.config/sway/config`:
+
+```
+exec systemctl --user import-environment SWAYSOCK WAYLAND_DISPLAY
+```
+
+If the service is already running, restart it after adding the above and reloading Sway:
+`systemctl --user restart speak-anywhere`
+
 ### Sway keybinding
 
 Add to your Sway config (`~/.config/sway/config`):

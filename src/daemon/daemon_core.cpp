@@ -172,7 +172,13 @@ void DaemonCore::on_transcription_complete() {
             (app.find("kitty") != std::string::npos ||
              app.find("alacritty") != std::string::npos ||
              app.find("foot") != std::string::npos ||
-             app.find("wezterm") != std::string::npos);
+             app.find("wezterm") != std::string::npos ||
+             app.find("gnome-terminal") != std::string::npos ||
+             app.find("konsole") != std::string::npos ||
+             app.find("st-") != std::string::npos ||
+             app.find("terminator") != std::string::npos ||
+             app.find("tilix") != std::string::npos ||
+             app.find("xterm") != std::string::npos);
 
         auto output = output_factory_(wr.output_method, is_terminal);
         if (output && !tr.text.empty()) {

@@ -21,7 +21,7 @@ std::expected<void, std::string> WaylandTypeOutput::terminal_paste(const std::st
     auto res = clip.deliver(text);
     if (!res) return res;
 
-    ::usleep(10000);
+    ::usleep(50000); // 50ms delay for clipboard sync
 
     pid_t pid = ::fork();
     if (pid < 0) {
@@ -29,7 +29,7 @@ std::expected<void, std::string> WaylandTypeOutput::terminal_paste(const std::st
     }
 
     if (pid == 0) {
-        ::execlp("wtype", "wtype", "-M", "ctrl", "-M", "shift", "-k", "v", nullptr);
+        ::execlp("wtype", "wtype", "-M", "ctrl", "-M", "shift", "-k", "v", "-m", "shift", "-m", "ctrl", nullptr);
         ::_exit(127);
     }
 
@@ -51,7 +51,7 @@ std::expected<void, std::string> WaylandTypeOutput::general_paste(const std::str
     auto res = clip.deliver(text);
     if (!res) return res;
 
-    ::usleep(10000);
+    ::usleep(50000); // 50ms delay for clipboard sync
 
     pid_t pid = ::fork();
     if (pid < 0) {
@@ -59,7 +59,7 @@ std::expected<void, std::string> WaylandTypeOutput::general_paste(const std::str
     }
 
     if (pid == 0) {
-        ::execlp("wtype", "wtype", "-M", "ctrl", "-k", "v", nullptr);
+        ::execlp("wtype", "wtype", "-M", "ctrl", "-k", "v", "-m", "ctrl", nullptr);
         ::_exit(127);
     }
 
