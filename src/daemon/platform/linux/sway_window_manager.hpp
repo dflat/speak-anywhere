@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <nlohmann/json.hpp>
 #include <string>
+#include <vector>
 
 class SwayWindowManager : public WindowManager {
 public:
@@ -22,6 +23,9 @@ public:
     bool is_modifier_down() override;
 
 private:
+    void find_keyboards();
+    void close_keyboards();
+
     static constexpr char MAGIC[] = "i3-ipc";
     static constexpr uint32_t MSG_GET_TREE = 4;
     static constexpr uint32_t MSG_SUBSCRIBE = 2;
@@ -35,4 +39,5 @@ private:
     int query_fd_ = -1;
     int event_fd_ = -1;
     std::string sway_sock_;
+    std::vector<int> keyboard_fds_;
 };

@@ -23,18 +23,18 @@ SwayWindowManager::SwayWindowManager() = default;
 SwayWindowManager::~SwayWindowManager() {
     if (query_fd_ >= 0) ::close(query_fd_);
     if (event_fd_ >= 0) ::close(event_fd_);
+    close_keyboards();
 }
 
-bool SwayWindowManager::is_modifier_down() {
-    // Check all event devices for modifier keys
+void SwayWindowManager::find_keyboards() {
+    close_keyboards();
     try {
-        if (!fs::exists("/dev/input")) return false;
+        if (!fs::exists("/dev/input")) return;
         for (auto const& entry : fs::directory_iterator("/dev/input")) {
             if (entry.path().filename().string().starts_with("event")) {
-                int fd = ::open(entry.path().c_str(), O_RDONLY | O_NONBLOCK);
+                int fd = ::open(entry.path().c_str(), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
                 if (fd < 0) continue;
 
-                // Check if it's a keyboard (supports KEY_LEFTCTRL)
                 unsigned long key_bits[NLONGS(KEY_CNT)] = {0};
                 if (::ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), key_bits) < 0) {
                     ::close(fd);
@@ -45,38 +45,52 @@ bool SwayWindowManager::is_modifier_down() {
                     return (key_bits[bit / (8 * sizeof(long))] >> (bit % (8 * sizeof(long)))) & 1;
                 };
 
-                if (!test_bit(KEY_LEFTCTRL) && !test_bit(KEY_RIGHTCTRL) &&
-                    !test_bit(KEY_LEFTALT) && !test_bit(KEY_RIGHTALT) &&
-                    !test_bit(KEY_LEFTMETA) && !test_bit(KEY_RIGHTMETA)) {
+                // Filter for things that look like keyboards
+                if (test_bit(KEY_LEFTCTRL) || test_bit(KEY_RIGHTCTRL) ||
+                    test_bit(KEY_LEFTALT) || test_bit(KEY_RIGHTALT) ||
+                    test_bit(KEY_A) || test_bit(KEY_Z)) {
+                    keyboard_fds_.push_back(fd);
+                } else {
                     ::close(fd);
-                    continue;
                 }
-
-                // It is a keyboard, check current state
-                unsigned long key_state[NLONGS(KEY_CNT)] = {0};
-                if (::ioctl(fd, EVIOCGKEY(sizeof(key_state)), key_state) >= 0) {
-                    auto is_down = [&](int bit) {
-                        return (key_state[bit / (8 * sizeof(long))] >> (bit % (8 * sizeof(long)))) & 1;
-                    };
-
-                    if (is_down(KEY_LEFTCTRL) || is_down(KEY_RIGHTCTRL) ||
-                        is_down(KEY_LEFTALT) || is_down(KEY_RIGHTALT) ||
-                        is_down(KEY_LEFTMETA) || is_down(KEY_RIGHTMETA) ||
-                        is_down(KEY_LEFTSHIFT) || is_down(KEY_RIGHTSHIFT)) {
-                        ::close(fd);
-                        return true;
-                    }
-                }
-                ::close(fd);
             }
         }
-    } catch (...) {
-        return false;
+    } catch (...) {}
+}
+
+void SwayWindowManager::close_keyboards() {
+    for (int fd : keyboard_fds_) {
+        ::close(fd);
+    }
+    keyboard_fds_.clear();
+}
+
+bool SwayWindowManager::is_modifier_down() {
+    if (keyboard_fds_.empty()) {
+        find_keyboards();
+    }
+
+    for (int fd : keyboard_fds_) {
+        unsigned long key_state[NLONGS(KEY_CNT)] = {0};
+        if (::ioctl(fd, EVIOCGKEY(sizeof(key_state)), key_state) >= 0) {
+            auto is_down = [&](int bit) {
+                return (key_state[bit / (8 * sizeof(long))] >> (bit % (8 * sizeof(long)))) & 1;
+            };
+
+            if (is_down(KEY_LEFTCTRL) || is_down(KEY_RIGHTCTRL) ||
+                is_down(KEY_LEFTALT) || is_down(KEY_RIGHTALT) ||
+                is_down(KEY_LEFTMETA) || is_down(KEY_RIGHTMETA) ||
+                is_down(KEY_LEFTSHIFT) || is_down(KEY_RIGHTSHIFT)) {
+                return true;
+            }
+        }
     }
     return false;
 }
 
 bool SwayWindowManager::connect() {
+    find_keyboards();
+
     const char* sock = std::getenv("SWAYSOCK");
     if (!sock) {
         std::println(stderr, "sway: $SWAYSOCK not set");
