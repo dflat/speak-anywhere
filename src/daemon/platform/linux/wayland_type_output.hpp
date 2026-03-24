@@ -1,6 +1,7 @@
 #pragma once
 
 #include "output/output.hpp"
+#include <cstdint>
 
 class WaylandTypeOutput : public OutputMethod {
 public:
