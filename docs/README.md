@@ -151,21 +151,26 @@ See `config/config.example.json` for all options.
 The `install.sh` script automatically copies binaries to `~/.local/bin`. To set up the service for the first time:
 
 ```bash
-# Install and start the service
+# Install the service file
+mkdir -p ~/.config/systemd/user/
 cp systemd/speak-anywhere.service ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable --now speak-anywhere
 ```
 
-#### Important: Sway Environment Variables
-For the daemon to communicate with Sway (for window context) and Wayland (for clipboard/typing), you must import the session environment variables into the systemd user manager. Add this to your `~/.config/sway/config`:
+#### Important: Sway Configuration
+Because the daemon requires the Sway session environment (for window context) and Wayland (for clipboard/typing), it is best to let **Sway** start the service once the environment is ready.
+
+Add this to your `~/.config/sway/config`:
 
 ```
+# 1. Import session variables into systemd
 exec systemctl --user import-environment SWAYSOCK WAYLAND_DISPLAY
+
+# 2. Start the daemon (systemd manages it, but Sway triggers it)
+exec systemctl --user start speak-anywhere
 ```
 
-If the service is already running, restart it after adding the above and reloading Sway:
-`systemctl --user restart speak-anywhere`
+This setup ensures the daemon always has the correct environment and systemd handles restarts/logging.
 
 ### Sway keybinding
 

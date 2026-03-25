@@ -14,7 +14,5 @@ RestartSec=3
 # Note: SWAYSOCK and WAYLAND_DISPLAY are required for Sway IPC and clipboard/typing output.
 # These should be imported from your Sway config:
 # exec systemctl --user import-environment SWAYSOCK WAYLAND_DISPLAY
+# exec systemctl --user start speak-anywhere
 Environment=XDG_RUNTIME_DIR=%t
-
-[Install]
-WantedBy=default.target
