@@ -4,9 +4,29 @@ set -e
 # Define paths
 BUILD_DIR="build"
 INSTALL_DIR="$HOME/.local/bin"
+SERVICE_SRC="systemd/speak-anywhere.service"
+SERVICE_DIR="$HOME/.config/systemd/user"
+SERVICE_DEST="$SERVICE_DIR/speak-anywhere.service"
+
+# Configure build if needed, then build (cmake --build is incremental)
+if [ ! -f "$BUILD_DIR/CMakeCache.txt" ]; then
+    echo "Configuring cmake build..."
+    cmake -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Debug
+fi
+echo "Building project..."
+cmake --build "$BUILD_DIR" -j"$(nproc)"
 
 # Create install dir if it doesn't exist
 mkdir -p "$INSTALL_DIR"
+
+# Install systemd user service if missing or out of date
+mkdir -p "$SERVICE_DIR"
+if ! cmp -s "$SERVICE_SRC" "$SERVICE_DEST"; then
+    echo "Installing systemd service to $SERVICE_DEST..."
+    install -m 644 "$SERVICE_SRC" "$SERVICE_DEST"
+    systemctl --user daemon-reload
+    systemctl --user enable speak-anywhere.service
+fi
 
 # Restart systemd unit
 echo "Stopping speak-anywhere.service..."

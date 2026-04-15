@@ -9,7 +9,13 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(CURL REQUIRED IMPORTED_TARGET libcurl)
 pkg_check_modules(SQLITE3 REQUIRED IMPORTED_TARGET sqlite3)
 
-find_path(NLOHMANN_JSON_INCLUDE nlohmann/json.hpp REQUIRED)
+include(FetchContent)
+FetchContent_Declare(
+    nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG        v3.11.3
+)
+FetchContent_MakeAvailable(nlohmann_json)
 
 # Portable daemon sources (no platform dependencies)
 set(PORTABLE_SOURCES
@@ -50,13 +56,13 @@ add_library(speak-anywhere-lib STATIC
 
 target_include_directories(speak-anywhere-lib PUBLIC
     src/daemon
-    ${NLOHMANN_JSON_INCLUDE}
 )
 
 target_link_libraries(speak-anywhere-lib PUBLIC
     ${PLATFORM_LINK_LIBS}
     PkgConfig::CURL
     PkgConfig::SQLITE3
+    nlohmann_json::nlohmann_json
 )
 
 # Daemon executable
@@ -72,11 +78,10 @@ add_executable(sa
 target_include_directories(sa PRIVATE
     src/client
     src/daemon
-    ${NLOHMANN_JSON_INCLUDE}
 )
+target_link_libraries(sa PRIVATE nlohmann_json::nlohmann_json)
 
 # Tests
-include(FetchContent)
 FetchContent_Declare(
     Catch2
     GIT_REPOSITORY https://github.com/catchorg/Catch2.git
